@@ -21,9 +21,13 @@ const server = http.createServer((req, res) => {
   res.end(greet(name));
 });
 
-server.listen(port, hostname, () => {
-  console.log(`Servidor corriendo en http://${hostname}:${port}/`);
-});
+// Este bloque asegura que el servidor solo se inicie si el archivo se ejecuta directamente
+// (es decir, con `node app.js`), pero no cuando se importa (con `require('./app')`) para las pruebas.
+if (require.main === module) {
+  server.listen(port, hostname, () => {
+    console.log(`Servidor corriendo en http://${hostname}:${port}/`);
+  });
+}
 
 // También exportamos el servidor para posibles pruebas de integración,
 // aunque no haremos eso en este ejemplo.
