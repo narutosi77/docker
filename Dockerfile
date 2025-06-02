@@ -8,16 +8,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala las dependencias
-# Las dependencias de desarrollo (devDependencies) no son necesarias en producción
-# pero aquí las instalaremos para que las pruebas unitarias puedan ejecutarse en el contenedor si fuera necesario
-RUN npm install --production=false # Instala todas las dependencias, incluyendo devDeps para pruebas
+# Las dependencias de desarrollo (devDependencies) son necesarias para que las pruebas unitarias puedan ejecutarse en el contenedor
+RUN npm install --production=false
 
 # Copia los archivos de nuestra aplicación al directorio de trabajo
 COPY app.js .
-COPY app.test.js . # Copia el archivo de pruebas también
+# Copia el archivo de pruebas también
+COPY app.test.js .
 
-# Expone el puerto que nuestra aplicación usará
 EXPOSE 3000
 
-# Comando para ejecutar la aplicación cuando se inicie el contenedor
 CMD ["node", "app.js"]

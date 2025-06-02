@@ -29,6 +29,5 @@ if (require.main === module) {
   });
 }
 
-// También exportamos el servidor para posibles pruebas de integración,
-// aunque no haremos eso en este ejemplo.
+// También exportamos el servidor para posibles pruebas de integración (aunque no es el foco aquí).
 module.exports = { greet, server };
