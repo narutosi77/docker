@@ -3,7 +3,7 @@ name: Build & Push Docker Image
 on:
   push:
     branches:
-      - main 
+      - main # O 'master'
 
 env:
   # Reemplaza con tu nombre de usuario de Docker Hub
@@ -14,18 +14,28 @@ env:
   IMAGE_TAG: 1.0
 
 jobs:
-  build-and-push:
+  build-test-and-push: # Cambiamos el nombre del job para reflejar los nuevos pasos
     runs-on: ubuntu-latest # Ejecuta el flujo de trabajo en una máquina virtual Linux
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4 # Clona tu repositorio
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18' # Asegúrate de que coincida con la versión en tu Dockerfile
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run unit tests and collect coverage
+      run: npm test -- --coverage # Ejecuta Jest con cobertura de código
+
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Build and push Docker image
@@ -35,5 +45,5 @@ jobs:
         push: true # Indica que la imagen debe ser subida a Docker Hub
         tags: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
         # Opcional: caches para acelerar futuras construcciones
-        cache-from: type=gha,scope=${{ github.workflow }}
-        cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+        # cache-from: type=gha,scope=${{ github.workflow }} # Línea comentada para solucionar el error
+        # cache-to: type=gha,mode=max,scope=${{ github.workflow }}   # Línea comentada para solucionar el error
