@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, hostname, () => {
-  console.log(`Servidor corriendo en http://<span class="math-inline">\{hostname\}\:</span>{port}/`);
+  console.log(`Servidor corriendo en http://${hostname}:${port}/`);
 });
 
 // También exportamos el servidor para posibles pruebas de integración,

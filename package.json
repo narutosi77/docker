@@ -4,19 +4,12 @@
   "description": "en este repositorio subire mis archivos de la mini app.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/narutosi77/docker.git"
+    "test": "jest --coverage",
+    "start": "node app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/narutosi77/docker/issues"
-  },
-  "homepage": "https://github.com/narutosi77/docker#readme",
   "devDependencies": {
     "jest": "^29.7.0"
   }
