@@ -51,13 +51,11 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-    # Paso modificado: Construir y subir la imagen Docker usando el archivo bake
-    # Las advertencias del editor aquí son normales; el código es correcto para GitHub Actions.
+
     - name: Build and push Docker image using Bake
       uses: docker/build-push-action@v5
       with:
-        # Aquí le indicamos que use el archivo docker-bake.hcl
-        # La acción docker/build-push-action espera 'bakefile' para especificar el archivo bake
+        
         bakefile: ./docker-bake.hcl
         # Le decimos qué objetivo del archivo bake debe construir
         targets: mi-app-sencilla
