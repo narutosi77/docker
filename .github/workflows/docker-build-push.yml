@@ -3,59 +3,66 @@ name: Build & Push Docker Image
 on:
   push:
     branches:
-      - main 
+      - main # O 'master', dependiendo de la rama principal de tu repositorio
 
 env:
-
+  # Reemplaza con tu nombre de usuario de Docker Hub
   DOCKER_HUB_USERNAME: ilyyessy
-  
+  # El nombre de la imagen Docker (sin el nombre de usuario)
   IMAGE_NAME: mi-app-sencilla
-  
+  # La etiqueta de la versión (puedes usar 'latest' o una basada en el commit SHA, etc.)
   IMAGE_TAG: 1.0
 
 jobs:
-  build-test-and-push:
-    runs-on: ubuntu-latest 
+  build-test-and-push: # El nombre del job
+    runs-on: ubuntu-latest # Ejecuta el flujo de trabajo en una máquina virtual Linux
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4 
+      uses: actions/checkout@v4 # Clona tu repositorio
+
+    # Nuevo paso: Configurar Docker Buildx (necesario para docker bake)
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18' 
+        node-version: '18' # Asegúrate de que coincida con la versión en tu Dockerfile
 
     - name: Install dependencies
       run: npm install
 
     - name: Run unit tests and collect coverage
-      run: npm test -- --coverage 
+      run: npm test -- --coverage # Ejecuta Jest con cobertura de código
 
-    
     - name: Scan Dockerfile for misconfigurations with Trivy
-      uses: aquasecurity/trivy-action@master 
+      uses: aquasecurity/trivy-action@master # Usamos la acción oficial de Trivy
       with:
-        
         scan-type: 'fs'
-        input: 'Dockerfile' 
-        format: 'table' 
+        input: 'Dockerfile' # Ruta al Dockerfile
+        format: 'table'
         exit-code: '1'
-        severity: 'HIGH,CRITICAL' 
-        
+        severity: 'HIGH,CRITICAL'
+
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-    
-    - name: Build and push Docker image
+    # Paso modificado: Construir y subir la imagen Docker usando el archivo bake
+    # Las advertencias del editor aquí son normales; el código es correcto para GitHub Actions.
+    - name: Build and push Docker image using Bake
       uses: docker/build-push-action@v5
       with:
-        context: . 
-        push: true 
+        # Aquí le indicamos que use el archivo docker-bake.hcl
+        # La acción docker/build-push-action espera 'bakefile' para especificar el archivo bake
+        bakefile: ./docker-bake.hcl
+        # Le decimos qué objetivo del archivo bake debe construir
+        targets: mi-app-sencilla
+        push: true # Indica que la imagen debe ser subida a Docker Hub
         tags: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-        
+        # Las líneas de caché están comentadas para evitar el error "Cache export is not supported"
         # cache-from: type=gha,scope=${{ github.workflow }}
         # cache-to: type=gha,mode=max,scope=${{ github.workflow }}
