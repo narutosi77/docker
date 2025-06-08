@@ -6,25 +6,22 @@ on:
       - main # O 'master', dependiendo de la rama principal de tu repositorio
 
 env:
-  # Reemplaza con tu nombre de usuario de Docker Hub
   DOCKER_HUB_USERNAME: ilyyessy
-  # El nombre de la imagen Docker (sin el nombre de usuario)
-  IMAGE_NAME: mi-app-sencilla
-  # La etiqueta de la versión (puedes usar 'latest' o una basada en el commit SHA, etc.)
-  IMAGE_TAG: 1.0
+  IMAGE_NAME: mi-app-sencilla # El nombre de la imagen Docker (sin el nombre de usuario)
 
 jobs:
-  build-test-and-push: # El nombre del job
-    runs-on: ubuntu-latest # Ejecuta el flujo de trabajo en una máquina virtual Linux
+  build-test-and-push:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4 # Clona tu repositorio
+      uses: actions/checkout@v4
 
-    # Nuevo paso: Configurar Docker Buildx (necesario para docker bake)
+    # Configurar Docker Buildx (necesario para docker bake y funcionalidad de cache)
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    # Configurar Node.js para instalar dependencias y ejecutar pruebas
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -34,33 +31,55 @@ jobs:
       run: npm install
 
     - name: Run unit tests and collect coverage
-      run: npm test -- --coverage # Ejecuta Jest con cobertura de código
+      # Este paso ejecuta las pruebas y genera el reporte de cobertura.
+      # El pipeline fallará si las pruebas no pasan (exit code != 0 de npm test).
+      run: npm test -- --coverage
 
+    # Opcional: Subir el reporte de cobertura como un artefacto
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/lcov-report # Ajusta esta ruta si tu reporte de cobertura se guarda en otro lugar
+        retention-days: 5 # Guarda el reporte por 5 días
+
+    # Escanear el Dockerfile en busca de errores de configuración con Trivy
     - name: Scan Dockerfile for misconfigurations with Trivy
-      uses: aquasecurity/trivy-action@master # Usamos la acción oficial de Trivy
+      uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
-        input: 'Dockerfile' # Ruta al Dockerfile
+        input: 'Dockerfile'
         format: 'table'
-        exit-code: '1'
+        exit-code: '1' # Hace que el workflow falle si se encuentran vulnerabilidades HIGH o CRITICAL
         severity: 'HIGH,CRITICAL'
 
+    # Autenticarse en Docker Hub antes de construir y empujar la imagen
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-
+    # Construir y empujar la imagen Docker usando docker bake
     - name: Build and push Docker image using Bake
       uses: docker/build-push-action@v5
       with:
-        
+        # Usa el archivo docker-bake.hcl que definiste
         bakefile: ./docker-bake.hcl
-        # Le decimos qué objetivo del archivo bake debe construir
+        # Le decimos qué objetivo (target) del archivo bake debe construir.
+        # Asume que 'mi-app-sencilla' es un objetivo válido en tu docker-bake.hcl
         targets: mi-app-sencilla
-        push: true # Indica que la imagen debe ser subida a Docker Hub
-        tags: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-        # Las líneas de caché están comentadas para evitar el error "Cache export is not supported"
-        # cache-from: type=gha,scope=${{ github.workflow }}
-        # cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+        
+        # Indica que la imagen debe ser subida a Docker Hub.
+        # La lógica de tagging (etiquetado) la manejamos aquí o en el bakefile.
+        push: true 
+        
+        # Genera dos tags: uno con el SHA del commit y otro como 'latest'
+        tags: |
+          ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        
+        # Configuración de caché para Buildx (si el runner lo soporta y quieres optimizar)
+        # Asegúrate de que tu setup-buildx-action@v3 lo soporte.
+        cache-from: type=gha,scope=${{ github.workflow }}
+        cache-to: type=gha,mode=max,scope=${{ github.workflow }}
